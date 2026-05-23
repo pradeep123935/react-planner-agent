@@ -11,6 +11,9 @@ from app.routes.auth_routes import router as auth_router
 from app.routes.calendar_routes import router as calendar_router
 from app.routes.goal_routes import router as goal_router
 from app.routes.project_routes import router as project_router
+from app.routes.note_routes import router as note_router
+from app.routes.habit_routes import router as habit_router
+from app.routes.focus_routes import router as focus_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,11 +44,14 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 
-app.include_router(task_router, prefix=settings.API_V1_STR)
+app.include_router(task_router, prefix=f"{settings.API_V1_STR}/tasks")
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth")
 app.include_router(calendar_router, prefix=f"{settings.API_V1_STR}/calendar")
 app.include_router(goal_router, prefix=f"{settings.API_V1_STR}/goals")
 app.include_router(project_router, prefix=f"{settings.API_V1_STR}/projects")
+app.include_router(note_router, prefix=f"{settings.API_V1_STR}/notes")
+app.include_router(habit_router, prefix=f"{settings.API_V1_STR}/habits")
+app.include_router(focus_router, prefix=f"{settings.API_V1_STR}/focus")
 
 @app.get("/")
 async def root():

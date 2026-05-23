@@ -1,121 +1,286 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AlarmClock,
   BarChart3,
   CalendarDays,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Circle,
   ClipboardList,
-  Filter,
-  Grid2X2,
-  List,
-  MoreHorizontal,
+  Loader2,
+  Pencil,
   Plus,
-  Rocket,
   Search,
-  Sparkles,
+  Trash2,
+  X,
 } from "lucide-react";
 
-const stats = [
-  { label: "All Tasks", value: "86", sub: "Total tasks", icon: ClipboardList, color: "#CBD5E1" },
-  { label: "To Do", value: "32", sub: "37% of tasks", icon: Circle, color: "#94A3B8" },
-  { label: "In Progress", value: "18", sub: "21% of tasks", icon: BarChart3, color: "#3B82F6" },
-  { label: "Completed", value: "36", sub: "42% of tasks", icon: Check, color: "#22C55E" },
-  { label: "Overdue", value: "7", sub: "8% of tasks", icon: AlarmClock, color: "#EF4444" },
-];
+type TaskStatus = "todo" | "in_progress" | "done" | "archived";
+type TaskPriority = "low" | "medium" | "high" | "urgent";
+type EnergyLevel = "low" | "medium" | "high";
+type TaskTab = "All Tasks" | "To Do" | "In Progress" | "Completed" | "Overdue";
 
-const tasks = [
-  { title: "Solve 2 Graph Problems", desc: "Revise DFS, BFS and Topological Sort", project: "DSA Preparation", priority: "High", status: "In Progress", date: "May 20, 2024", day: "Today", time: "90m", accent: "#7C3AED" },
-  { title: "Design Parking Lot", desc: "Low-level design with OOPs principles", project: "System Design", priority: "High", status: "To Do", date: "May 21, 2024", day: "Tomorrow", time: "120m", accent: "#F97316" },
-  { title: "Implement JWT Auth", desc: "Spring Security + JWT implementation", project: "Backend Development", priority: "Medium", status: "In Progress", date: "May 22, 2024", day: "Wed", time: "60m", accent: "#22C55E" },
-  { title: "Read about Rate Limiting", desc: "Study different algorithms", project: "System Design", priority: "Medium", status: "To Do", date: "May 23, 2024", day: "Thu", time: "45m", accent: "#64748B" },
-  { title: "Mock Interview - Round 1", desc: "Behavioral and technical round", project: "Mock Interviews", priority: "High", status: "To Do", date: "May 24, 2024", day: "Fri", time: "90m", accent: "#EF4444" },
-  { title: "Create React Dashboard", desc: "Analytics dashboard UI", project: "Frontend Development", priority: "Medium", status: "To Do", date: "May 25, 2024", day: "Sat", time: "180m", accent: "#EC4899" },
-  { title: "Optimize SQL Queries", desc: "Indexing and query optimization", project: "Backend Development", priority: "Low", status: "Completed", date: "May 18, 2024", day: "Sat", time: "60m", accent: "#22C55E" },
-  { title: "Workout - Upper Body", desc: "Strength training", project: "Health & Fitness", priority: "Low", status: "Completed", date: "May 17, 2024", day: "Fri", time: "45m", accent: "#94A3B8" },
-];
+type ProjectOption = {
+  id: string;
+  title: string;
+  goal_title: string;
+};
 
-const upcoming = [
-  { title: "Design Parking Lot", project: "System Design", date: "May 21", day: "Tomorrow", priority: "High", color: "#3B82F6" },
-  { title: "Implement JWT Auth", project: "Backend Development", date: "May 22", day: "Wed", priority: "", color: "#22C55E" },
-  { title: "Read about Rate Limiting", project: "System Design", date: "May 23", day: "Thu", priority: "Medium", color: "#3B82F6" },
-];
+type Task = {
+  id: string;
+  title: string;
+  project_id: string;
+  project_title: string;
+  goal_id: string;
+  goal_title: string;
+  description?: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date?: string | null;
+  estimated_minutes?: number | null;
+  energy_level?: EnergyLevel | null;
+  created_at: string;
+};
 
-const calendarDays = [
-  ["29", "30", "1", "2", "3", "4", "5"],
-  ["6", "7", "8", "9", "10", "11", "12"],
-  ["15", "14", "15", "16", "17", "18", "19"],
-  ["20", "21", "22", "23", "24", "25", "26"],
-  ["27", "28", "29", "30", "31", "1", "2"],
-];
+type TaskForm = {
+  title: string;
+  project_id: string;
+  description: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date: string;
+  estimated_minutes: string;
+  energy_level: "" | EnergyLevel;
+};
+
+const emptyForm: TaskForm = {
+  title: "",
+  project_id: "",
+  description: "",
+  priority: "medium",
+  status: "todo",
+  due_date: "",
+  estimated_minutes: "",
+  energy_level: "",
+};
+
+const statusLabels: Record<TaskStatus, string> = {
+  todo: "To Do",
+  in_progress: "In Progress",
+  done: "Completed",
+  archived: "Archived",
+};
+
+const priorityColors: Record<TaskPriority, string> = {
+  low: "bg-emerald-500/15 text-emerald-500 dark:text-emerald-300",
+  medium: "bg-orange-500/15 text-orange-500 dark:text-orange-300",
+  high: "bg-rose-500/15 text-rose-500 dark:text-rose-300",
+  urgent: "bg-red-600/15 text-red-500 dark:text-red-300",
+};
 
 function Panel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <section className={`rounded-xl border border-app-border bg-app-panel shadow-[0_16px_50px_rgba(0,0,0,0.22)] ${className}`}>
-      {children}
-    </section>
-  );
+  return <section className={`rounded-xl border border-app-border bg-app-panel shadow-[0_16px_50px_rgba(0,0,0,0.14)] ${className}`}>{children}</section>;
 }
 
-function Pill({ children, type }: { children: React.ReactNode; type: "project" | "priority" | "status"; }) {
-  const text = String(children);
-  const palette =
-    type === "status"
-      ? text === "Completed"
-        ? "bg-emerald-500/15 text-emerald-300"
-        : text === "In Progress"
-          ? "bg-blue-500/15 text-blue-300"
-          : "bg-app-soft text-app-primary"
-      : type === "priority"
-        ? text === "High"
-          ? "bg-rose-500/15 text-rose-300"
-          : text === "Medium"
-            ? "bg-orange-500/15 text-orange-300"
-            : "bg-emerald-500/15 text-emerald-300"
-        : text.includes("Backend")
-          ? "bg-emerald-500/12 text-emerald-300"
-          : text.includes("System")
-            ? "bg-blue-500/12 text-blue-300"
-            : text.includes("DSA")
-              ? "bg-purple-500/12 text-purple-300"
-              : text.includes("Frontend")
-                ? "bg-pink-500/12 text-pink-300"
-                : text.includes("Health")
-                  ? "bg-yellow-500/12 text-yellow-300"
-                  : "bg-orange-500/12 text-orange-300";
+function isOverdue(task: Task) {
+  if (!task.due_date || task.status === "done") return false;
+  const due = new Date(task.due_date);
+  due.setHours(23, 59, 59, 999);
+  return due.getTime() < Date.now();
+}
 
-  return <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${palette}`}>{children}</span>;
+function StatusBadge({ task }: { task: Task }) {
+  const label = isOverdue(task) ? "Overdue" : statusLabels[task.status];
+  const classes =
+    label === "Completed"
+      ? "bg-emerald-500/15 text-emerald-500 dark:text-emerald-300"
+      : label === "In Progress"
+        ? "bg-blue-500/15 text-blue-500 dark:text-blue-300"
+        : label === "Overdue"
+          ? "bg-rose-500/15 text-rose-500 dark:text-rose-300"
+          : "bg-app-soft text-app-primary";
+
+  return <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${classes}`}>{label}</span>;
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <label className="text-sm font-semibold text-app-secondary">{children}</label>;
 }
 
 export default function TasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<TaskTab>("All Tasks");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState<TaskForm>(emptyForm);
+
+  async function loadData() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [tasksResponse, projectsResponse] = await Promise.all([
+        fetch("/api/tasks", { cache: "no-store" }),
+        fetch("/api/projects", { cache: "no-store" }),
+      ]);
+
+      if (!tasksResponse.ok || !projectsResponse.ok) throw new Error("Failed to load tasks");
+      setTasks(await tasksResponse.json());
+      setProjects(await projectsResponse.json());
+    } catch {
+      setError("Could not load tasks. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
+  }, []);
+
+  const filteredTasks = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return tasks.filter((task) => {
+      const matchesQuery = !term || `${task.title} ${task.description ?? ""} ${task.project_title} ${task.goal_title}`.toLowerCase().includes(term);
+      const matchesTab =
+        activeTab === "All Tasks" ||
+        (activeTab === "To Do" && task.status === "todo" && !isOverdue(task)) ||
+        (activeTab === "In Progress" && task.status === "in_progress") ||
+        (activeTab === "Completed" && task.status === "done") ||
+        (activeTab === "Overdue" && isOverdue(task));
+
+      return matchesQuery && matchesTab;
+    });
+  }, [activeTab, query, tasks]);
+
+  const stats = useMemo(() => {
+    const todo = tasks.filter((task) => task.status === "todo" && !isOverdue(task)).length;
+    const inProgress = tasks.filter((task) => task.status === "in_progress").length;
+    const completed = tasks.filter((task) => task.status === "done").length;
+    const overdue = tasks.filter(isOverdue).length;
+
+    return [
+      { label: "All Tasks", value: String(tasks.length), sub: "Total tasks", icon: ClipboardList, color: "#7C3AED" },
+      { label: "To Do", value: String(todo), sub: "Not started", icon: Circle, color: "#94A3B8" },
+      { label: "In Progress", value: String(inProgress), sub: "Active work", icon: BarChart3, color: "#3B82F6" },
+      { label: "Completed", value: String(completed), sub: "Finished", icon: Check, color: "#22C55E" },
+      { label: "Overdue", value: String(overdue), sub: "Need attention", icon: AlarmClock, color: "#EF4444" },
+    ];
+  }, [tasks]);
+
+  function openCreateForm() {
+    setEditingTask(null);
+    setForm({ ...emptyForm, project_id: projects[0]?.id ?? "" });
+    setIsFormOpen(true);
+  }
+
+  function openEditForm(task: Task) {
+    setEditingTask(task);
+    setForm({
+      title: task.title,
+      project_id: task.project_id,
+      description: task.description ?? "",
+      priority: task.priority,
+      status: task.status === "archived" ? "todo" : task.status,
+      due_date: task.due_date ?? "",
+      estimated_minutes: task.estimated_minutes ? String(task.estimated_minutes) : "",
+      energy_level: task.energy_level ?? "",
+    });
+    setIsFormOpen(true);
+  }
+
+  function closeForm() {
+    setIsFormOpen(false);
+    setEditingTask(null);
+    setForm(emptyForm);
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(editingTask ? `/api/tasks/${editingTask.id}` : "/api/tasks", {
+        method: editingTask ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title.trim(),
+          project_id: form.project_id,
+          description: form.description.trim() || null,
+          priority: form.priority,
+          status: form.status,
+          due_date: form.due_date || null,
+          estimated_minutes: form.estimated_minutes ? Number(form.estimated_minutes) : null,
+          energy_level: form.energy_level || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail ?? "Failed to save task");
+      }
+
+      const savedTask = (await response.json()) as Task;
+      setTasks((current) => editingTask ? current.map((task) => task.id === savedTask.id ? savedTask : task) : [savedTask, ...current]);
+      closeForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save task");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteTask(task: Task) {
+    const confirmed = window.confirm(`Delete "${task.title}"? This will archive the task.`);
+    if (!confirmed) return;
+
+    setDeletingTaskId(task.id);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail ?? "Failed to delete task");
+      }
+      setTasks((current) => current.filter((item) => item.id !== task.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete task");
+    } finally {
+      setDeletingTaskId(null);
+    }
+  }
+
   return (
-    <div className="grid min-h-screen min-w-0 gap-4 text-app-primary 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:gap-6">
+    <div className="min-h-screen min-w-0 text-app-primary">
       <main className="min-w-0 space-y-5">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Tasks</h1>
-            <p className="mt-1 text-base text-app-muted">Manage and track all your tasks</p>
+            <p className="mt-1 text-base text-app-muted">Create actionable tasks inside your projects.</p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-subtle" />
-              <input className="h-11 w-full rounded-lg border border-app-border bg-app-input pl-10 pr-3 text-sm outline-none placeholder:text-[#64748B] focus:border-[#7C3AED]" placeholder="Search tasks..." />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 w-full rounded-lg border border-app-border bg-app-input pl-10 pr-3 text-sm outline-none placeholder:text-app-subtle focus:border-[#7C3AED]" placeholder="Search tasks..." />
             </div>
-            <button className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-app-border bg-app-input px-4 text-sm text-app-secondary sm:flex-none">
-              <Filter className="h-4 w-4" />
-              Filter
-            </button>
-            <button className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#6D38E8] px-4 text-sm font-semibold shadow-lg shadow-[#7C3AED]/25 sm:flex-none">
+            <button onClick={openCreateForm} disabled={projects.length === 0} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#6D38E8] px-4 text-sm font-semibold text-white shadow-lg shadow-[#7C3AED]/25 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none">
               <Plus className="h-4 w-4" />
               New Task
             </button>
           </div>
         </header>
+
+        {error && <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-500 dark:text-rose-300">{error}</div>}
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {stats.map((stat) => {
@@ -138,176 +303,176 @@ export default function TasksPage() {
         </section>
 
         <Panel className="overflow-hidden">
-          <div className="flex flex-col gap-3 border-b border-app-border px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap gap-7 text-sm">
-              {["All Tasks", "My Tasks", "Today", "Upcoming", "Overdue"].map((tab, index) => (
-                <button key={tab} className={`relative py-2 ${index === 0 ? "text-app-primary" : "text-app-muted"}`}>
-                  {tab}
-                  {index === 0 && <span className="absolute inset-x-0 -bottom-3 h-0.5 rounded-full bg-[#7C3AED]" />}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-3 overflow-x-auto">
-              <div className="flex shrink-0 rounded-lg border border-app-border bg-app-elevated p-1 text-sm text-app-muted">
-                <button className="flex items-center gap-2 rounded-md bg-[#4F3ACD] px-3 py-2 text-white"><List className="h-4 w-4" />List</button>
-                <button className="flex items-center gap-2 rounded-md px-3 py-2"><Grid2X2 className="h-4 w-4" />Board</button>
-                <button className="flex items-center gap-2 rounded-md px-3 py-2"><CalendarDays className="h-4 w-4" />Calendar</button>
-              </div>
-              <button className="flex items-center gap-2 rounded-lg border border-app-border bg-app-elevated px-3 text-sm text-app-muted">
-                Sort: Priority
-                <ChevronDown className="h-4 w-4" />
+          <div className="flex gap-6 overflow-x-auto border-b border-app-border px-5 py-3 text-sm">
+            {(["All Tasks", "To Do", "In Progress", "Completed", "Overdue"] as TaskTab[]).map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`relative shrink-0 py-2 transition ${activeTab === tab ? "text-app-primary" : "text-app-muted hover:text-app-primary"}`}>
+                {tab}
+                {activeTab === tab && <span className="absolute inset-x-0 -bottom-3 h-0.5 rounded-full bg-[#7C3AED]" />}
               </button>
-            </div>
+            ))}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[980px] w-full text-left">
-              <thead className="bg-app-soft text-sm text-app-muted">
-                <tr>
-                  <th className="w-12 px-4 py-3"><span className="block h-4 w-4 rounded border border-[#64748B]" /></th>
-                  <th className="px-4 py-3 font-medium">Task</th>
-                  <th className="px-4 py-3 font-medium">Project</th>
-                  <th className="px-4 py-3 font-medium">Priority</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Due Date</th>
-                  <th className="px-4 py-3 font-medium">Time Est.</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task) => (
-                  <tr key={task.title} className="border-t border-app-border bg-app-elevated/30 transition hover:bg-app-soft">
-                    <td className="px-4 py-4"><span className="block h-4 w-4 rounded border border-[#64748B]" /></td>
-                    <td className="px-4 py-4">
-                      <div className="flex gap-3">
-                        <span className="mt-1 h-8 w-1 rounded-full" style={{ backgroundColor: task.accent }} />
-                        <div>
-                          <p className="font-semibold">{task.title} <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" /></p>
-                          <p className="mt-1 text-sm text-app-subtle">{task.desc}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4"><Pill type="project">{task.project}</Pill></td>
-                    <td className="px-4 py-4"><Pill type="priority">{task.priority}</Pill></td>
-                    <td className="px-4 py-4"><Pill type="status">{task.status}</Pill></td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm">{task.date}</p>
-                      <p className={`mt-1 text-sm ${task.day === "Tomorrow" ? "text-orange-300" : task.day === "Today" ? "text-emerald-300" : "text-app-muted"}`}>{task.day}</p>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-app-muted">{task.time}</td>
-                    <td className="px-4 py-4"><MoreHorizontal className="h-5 w-5 text-app-subtle" /></td>
+          {isLoading ? (
+            <div className="flex min-h-64 items-center justify-center text-app-muted">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Loading tasks
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="min-h-64 px-5 py-12 text-center">
+              <ClipboardList className="mx-auto h-10 w-10 text-[#7C3AED]" />
+              <h2 className="mt-4 text-lg font-semibold">Create a project first</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-app-muted">Tasks belong to projects, so add at least one project before creating tasks.</p>
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="min-h-64 px-5 py-12 text-center">
+              <ClipboardList className="mx-auto h-10 w-10 text-[#7C3AED]" />
+              <h2 className="mt-4 text-lg font-semibold">{tasks.length === 0 ? "No tasks yet" : "No matching tasks"}</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-app-muted">{tasks.length === 0 ? "Create your first task under a project." : "Try a different tab or search term."}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] text-left">
+                <thead className="bg-app-soft text-sm text-app-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Task</th>
+                    <th className="px-4 py-3 font-medium">Project</th>
+                    <th className="px-4 py-3 font-medium">Priority</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Due Date</th>
+                    <th className="px-4 py-3 font-medium">Estimate</th>
+                    <th className="px-4 py-3 font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-app-border px-4 py-4 text-sm text-app-muted sm:flex-row sm:items-center sm:justify-between">
-            <p>Showing 1 to 8 of 86 tasks</p>
-            <div className="flex items-center gap-2">
-              <button className="rounded-lg border border-app-border bg-app-elevated p-2 text-[#64748B]"><ChevronLeft className="h-4 w-4" /></button>
-              <button className="rounded-lg bg-[#4F3ACD] px-3 py-2 text-white">1</button>
-              <button className="rounded-lg border border-app-border bg-app-elevated px-3 py-2 text-app-primary">2</button>
-              <button className="rounded-lg border border-app-border bg-app-elevated px-3 py-2 text-app-primary">3</button>
-              <button className="rounded-lg border border-app-border bg-app-elevated px-3 py-2 text-app-subtle">...</button>
-              <button className="rounded-lg border border-app-border bg-app-elevated px-3 py-2 text-app-primary">11</button>
-              <button className="rounded-lg border border-app-border bg-app-elevated p-2 text-app-primary"><ChevronRight className="h-4 w-4" /></button>
+                </thead>
+                <tbody>
+                  {filteredTasks.map((task) => (
+                    <tr key={task.id} className="border-t border-app-border bg-app-elevated/30 transition hover:bg-app-soft">
+                      <td className="px-4 py-4">
+                        <p className="font-semibold">{task.title}</p>
+                        <p className="mt-1 line-clamp-2 text-sm text-app-subtle">{task.description || "No description added."}</p>
+                        <p className="mt-2 text-xs text-app-muted">Goal: {task.goal_title}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-app-secondary">{task.project_title}</td>
+                      <td className="px-4 py-4"><span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${priorityColors[task.priority]}`}>{task.priority}</span></td>
+                      <td className="px-4 py-4"><StatusBadge task={task} /></td>
+                      <td className="px-4 py-4 text-sm text-app-secondary">{task.due_date ? new Date(task.due_date).toLocaleDateString() : "No due date"}</td>
+                      <td className="px-4 py-4 text-sm text-app-muted">{task.estimated_minutes ? `${task.estimated_minutes}m` : "-"}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openEditForm(task)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-app-border bg-app-elevated text-app-muted transition hover:text-app-primary" aria-label={`Edit ${task.title}`}>
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => void deleteTask(task)} disabled={deletingTaskId === task.id} className="flex h-9 w-9 items-center justify-center rounded-lg border border-app-border bg-app-elevated text-rose-500 transition hover:bg-rose-500/10 disabled:opacity-60" aria-label={`Delete ${task.title}`}>
+                            {deletingTaskId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          )}
         </Panel>
       </main>
 
-      <aside className="space-y-4">
-        <Panel className="p-5">
-          <h2 className="mb-5 text-lg font-semibold">Task Summary</h2>
-          <div className="grid gap-5 sm:grid-cols-[150px_1fr] 2xl:grid-cols-1">
-            <div className="relative h-36 w-36">
-              <svg className="h-36 w-36 -rotate-90" viewBox="0 0 144 144" aria-hidden="true">
-                <circle cx="72" cy="72" r="52" fill="none" stroke="#334155" strokeWidth="14" />
-                <circle cx="72" cy="72" r="52" fill="none" stroke="#22C55E" strokeWidth="14" strokeDasharray="327" strokeDashoffset="104" />
-                <circle cx="72" cy="72" r="52" fill="none" stroke="#3B82F6" strokeWidth="14" strokeDasharray="327" strokeDashoffset="254" className="rotate-[245deg] origin-center" />
-                <circle cx="72" cy="72" r="52" fill="none" stroke="#EF4444" strokeWidth="14" strokeDasharray="327" strokeDashoffset="300" className="rotate-[318deg] origin-center" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-semibold">68%</span>
-                <span className="text-xs text-app-muted">Tasks</span>
-                <span className="text-xs text-app-muted">Completed</span>
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end bg-black/45 p-3 backdrop-blur-sm sm:items-center sm:justify-center">
+          <Panel className="max-h-[92vh] w-full max-w-2xl overflow-y-auto p-5 sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">{editingTask ? "Edit Task" : "Create Task"}</h2>
+                <p className="mt-1 text-sm text-app-muted">Attach the task to a project and define the next action clearly.</p>
               </div>
+              <button onClick={closeForm} className="rounded-lg p-2 text-app-subtle transition hover:bg-app-soft hover:text-app-primary" aria-label="Close">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="space-y-4 text-sm">
-              {[
-                ["Completed", "36", "#22C55E"],
-                ["In Progress", "18", "#3B82F6"],
-                ["To Do", "32", "#64748B"],
-                ["Overdue", "7", "#EF4444"],
-              ].map(([label, value, color]) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />{label}</span>
-                  <span>{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Panel>
 
-        <Panel className="p-5">
-          <h2 className="mb-5 text-lg font-semibold">Upcoming Tasks</h2>
-          <div className="space-y-5">
-            {upcoming.map((item) => (
-              <div key={item.title} className="grid grid-cols-[34px_1fr_auto] gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: item.color }}>
-                  <Rocket className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="mt-1 text-xs" style={{ color: item.color }}>{item.project}</p>
-                </div>
-                <div className="text-right text-xs">
-                  <p>{item.date}</p>
-                  <p className={item.day === "Tomorrow" ? "text-orange-300" : "text-app-muted"}>{item.day}</p>
-                  {item.priority && <Pill type="priority">{item.priority}</Pill>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <FieldLabel>Task title</FieldLabel>
+                <input required minLength={1} maxLength={200} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="h-11 w-full rounded-lg border border-app-border bg-app-input px-3 text-sm outline-none focus:border-[#7C3AED]" placeholder="Solve 2 graph problems" />
+              </div>
+
+              <div className="space-y-2">
+                <FieldLabel>Project</FieldLabel>
+                <div className="relative">
+                  <select required value={form.project_id} onChange={(event) => setForm({ ...form, project_id: event.target.value })} className="h-11 w-full appearance-none rounded-lg border border-app-border bg-app-input px-3 pr-10 text-sm text-app-primary outline-none transition [color-scheme:light] focus:border-[#7C3AED] dark:[color-scheme:dark]">
+                    {projects.map((project) => <option key={project.id} value={project.id}>{project.title} - {project.goal_title}</option>)}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-subtle" />
                 </div>
               </div>
-            ))}
-          </div>
-          <button className="mt-5 w-full text-sm text-[#A78BFA]">View all upcoming tasks →</button>
-        </Panel>
 
-        <Panel className="p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Calendar</h2>
-            <div className="flex items-center gap-3 text-sm">
-              <span>May 2024</span>
-              <ChevronLeft className="h-4 w-4" />
-              <ChevronRight className="h-4 w-4" />
-              <span>Today</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-7 gap-2 text-center text-xs text-app-muted">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <span key={day}>{day}</span>)}
-            {calendarDays.flat().map((day, index) => (
-              <span key={`${day}-${index}`} className={`rounded-full py-1.5 ${day === "20" ? "bg-[#6D38E8] text-white" : "text-app-secondary"}`}>
-                {day}
-              </span>
-            ))}
-          </div>
-        </Panel>
+              <div className="space-y-2">
+                <FieldLabel>Description</FieldLabel>
+                <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={4} maxLength={1000} className="w-full resize-none rounded-lg border border-app-border bg-app-input px-3 py-3 text-sm outline-none focus:border-[#7C3AED]" placeholder="What exactly should be done?" />
+              </div>
 
-        <Panel className="p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#A855F7]" />
-            <h2 className="text-lg font-semibold">AI Suggestions</h2>
-            <span className="rounded-md bg-[#1D2A65] px-2 py-0.5 text-[10px] font-semibold text-blue-200">Beta</span>
-          </div>
-          <p className="text-sm text-app-muted">Based on your patterns, I suggest:</p>
-          <div className="mt-4 space-y-3 text-sm text-app-muted">
-            <p>⏱ You have 3 high priority tasks pending</p>
-            <p>⚙ Best focus time for deep work: 7AM - 10AM</p>
-            <p>↻ Consider rescheduling 2 overdue tasks</p>
-          </div>
-          <button className="mt-5 w-full rounded-lg bg-[#6D38E8] py-3 text-sm font-semibold">View All Insights</button>
-        </Panel>
-      </aside>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <FieldLabel>Priority</FieldLabel>
+                  <div className="relative">
+                    <select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value as TaskPriority })} className="h-11 w-full appearance-none rounded-lg border border-app-border bg-app-input px-3 pr-10 text-sm text-app-primary outline-none transition [color-scheme:light] focus:border-[#7C3AED] dark:[color-scheme:dark]">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-subtle" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FieldLabel>Status</FieldLabel>
+                  <div className="relative">
+                    <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as TaskStatus })} className="h-11 w-full appearance-none rounded-lg border border-app-border bg-app-input px-3 pr-10 text-sm text-app-primary outline-none transition [color-scheme:light] focus:border-[#7C3AED] dark:[color-scheme:dark]">
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="done">Completed</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-subtle" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FieldLabel>Due date</FieldLabel>
+                  <div className="relative">
+                    <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-subtle" />
+                    <input type="date" value={form.due_date} onChange={(event) => setForm({ ...form, due_date: event.target.value })} className="h-11 w-full rounded-lg border border-app-border bg-app-input px-10 text-sm text-app-primary outline-none transition [color-scheme:light] focus:border-[#7C3AED] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 dark:[&::-webkit-calendar-picker-indicator]:invert" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FieldLabel>Estimate minutes</FieldLabel>
+                  <input type="number" min={0} max={1440} value={form.estimated_minutes} onChange={(event) => setForm({ ...form, estimated_minutes: event.target.value })} className="h-11 w-full rounded-lg border border-app-border bg-app-input px-3 text-sm outline-none focus:border-[#7C3AED]" placeholder="60" />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <FieldLabel>Energy level</FieldLabel>
+                  <div className="relative">
+                    <select value={form.energy_level} onChange={(event) => setForm({ ...form, energy_level: event.target.value as "" | EnergyLevel })} className="h-11 w-full appearance-none rounded-lg border border-app-border bg-app-input px-3 pr-10 text-sm text-app-primary outline-none transition [color-scheme:light] focus:border-[#7C3AED] dark:[color-scheme:dark]">
+                      <option value="">Not specified</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-subtle" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                <button type="button" onClick={closeForm} className="h-11 rounded-lg border border-app-border px-5 text-sm font-semibold text-app-secondary">Cancel</button>
+                <button disabled={isSaving} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#6D38E8] px-5 text-sm font-semibold text-white shadow-lg shadow-[#7C3AED]/25 disabled:opacity-70">
+                  {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {editingTask ? "Save Changes" : "Create Task"}
+                </button>
+              </div>
+            </form>
+          </Panel>
+        </div>
+      )}
     </div>
   );
 }

@@ -225,3 +225,170 @@ body::before {
   border: 1px solid var(--border);
   color: var(--card-foreground);
 }
+
+/* FullCalendar theme */
+.calendar-shell .fc {
+  --fc-border-color: var(--app-border);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--app-panel);
+  --fc-list-event-hover-bg-color: var(--app-soft);
+  --fc-today-bg-color: rgba(26, 115, 232, 0.08);
+  --fc-now-indicator-color: #d93025;
+  color: var(--app-primary);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+.calendar-shell .fc .fc-toolbar {
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  margin: 0;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.calendar-shell .fc .fc-toolbar-title {
+  color: var(--app-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.calendar-shell .fc .fc-button {
+  background: transparent;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  color: var(--app-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 0.8rem;
+  text-transform: capitalize;
+  box-shadow: none;
+}
+
+.calendar-shell .fc .fc-button:hover,
+.calendar-shell .fc .fc-button:focus {
+  background: rgba(26, 115, 232, 0.08);
+  border-color: rgba(26, 115, 232, 0.25);
+  color: var(--app-primary);
+  box-shadow: none;
+}
+
+.calendar-shell .fc .fc-button-primary:not(:disabled).fc-button-active {
+  background: rgba(26, 115, 232, 0.12);
+  border-color: rgba(26, 115, 232, 0.2);
+  color: #1A73E8;
+}
+
+.dark .calendar-shell .fc .fc-button-primary:not(:disabled).fc-button-active {
+  color: #8ab4f8;
+}
+
+.calendar-shell .fc .fc-col-header-cell,
+.calendar-shell .fc .fc-timegrid-axis,
+.calendar-shell .fc .fc-timegrid-slot-label {
+  background: var(--app-panel);
+  color: var(--app-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.calendar-shell .fc .fc-col-header-cell-cushion {
+  color: var(--app-secondary);
+  padding: 0.75rem 0.25rem;
+  text-decoration: none;
+}
+
+.calendar-shell .fc .fc-timegrid-slot {
+  height: 3.25rem;
+}
+
+.calendar-shell .fc .fc-scrollgrid {
+  border: 0;
+}
+
+.calendar-shell .fc .fc-scrollgrid-section > * {
+  border-left: 0;
+}
+
+.calendar-shell .fc .fc-timegrid-col.fc-day-today,
+.calendar-shell .fc .fc-daygrid-day.fc-day-today {
+  background: rgba(26, 115, 232, 0.05);
+}
+
+.calendar-shell .fc .fc-event {
+  border-radius: 0.35rem;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  padding: 0.05rem 0.15rem;
+  opacity: 0.95;
+}
+
+.calendar-shell .fc .fc-event-title,
+.calendar-shell .fc .fc-event-time {
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.calendar-shell .fc .fc-daygrid-day-number,
+.calendar-shell .fc .fc-timegrid-slot-label-cushion {
+  color: var(--app-muted);
+  text-decoration: none;
+}
+
+.calendar-shell .fc .fc-timegrid-now-indicator-line {
+  border-color: #d93025;
+  border-width: 1px;
+}
+
+.calendar-shell .fc .fc-timegrid-now-indicator-arrow {
+  border-color: #d93025;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.calendar-shell .fc-theme-standard td,
+.calendar-shell .fc-theme-standard th {
+  border-color: var(--app-border);
+}
+
+/* Notes editor */
+.notes-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--app-subtle);
+  pointer-events: none;
+}
+
+.notes-editor h2 {
+  color: var(--app-primary);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.notes-editor blockquote {
+  border-left: 3px solid #7C3AED;
+  color: var(--app-muted);
+  margin: 0.75rem 0;
+  padding-left: 1rem;
+}
+
+.notes-editor ul,
+.notes-editor ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.notes-editor ul {
+  list-style: disc;
+}
+
+.notes-editor ol {
+  list-style: decimal;
+}
+
+.notes-editor b,
+.notes-editor strong {
+  font-weight: 700;
+}
